@@ -130,7 +130,7 @@ class OpenMeteoClient {
     DateTime? endDate,
   }) async {
     final end = endDate ?? DateTime.now();
-    final start = startDate ?? DateTime(1979, 1, 1);
+    final start = startDate ?? DateTime(1940, 1, 1);
     final uri = Uri.https('archive-api.open-meteo.com', '/v1/archive', {
       'latitude': latitude.toString(),
       'longitude': longitude.toString(),

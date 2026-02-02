@@ -24,6 +24,7 @@ class _HistoryPageState extends State<HistoryPage> {
   List<DailyWeatherSample> _archive = [];
   bool _searching = false;
   bool _loadingWeather = false;
+  bool _locating = false;
   String? _error;
   int _callCount = 0;
 
@@ -52,10 +53,35 @@ class _HistoryPageState extends State<HistoryPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildSearchRow(),
+              if (_locating) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: const [
+                    SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2)),
+                    SizedBox(width: 8),
+                    Text('Fetching current location...'),
+                  ],
+                ),
+              ],
               const SizedBox(height: 8),
               if (_searching) const LinearProgressIndicator(),
               if (_error != null) ...[
-                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      ),
+                    ),
+                    if (_selectedLocation != null)
+                      TextButton(
+                        onPressed: _loadWeather,
+                        child: const Text('Retry'),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 8),
               ],
               if (_searchResults.isNotEmpty) _buildSearchResultsList(),
@@ -120,7 +146,7 @@ class _HistoryPageState extends State<HistoryPage> {
         IconButton(
           tooltip: 'Use current location',
           icon: const Icon(Icons.my_location_outlined),
-          onPressed: _useCurrentLocation,
+          onPressed: _locating ? null : _useCurrentLocation,
         ),
         const SizedBox(width: 4),
         ElevatedButton(
@@ -345,6 +371,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Future<void> _useCurrentLocation() async {
     setState(() {
       _error = null;
+      _locating = true;
     });
     try {
       final permission = await _ensureLocationPermission();
@@ -379,6 +406,12 @@ class _HistoryPageState extends State<HistoryPage> {
       await _loadWeather();
     } catch (e) {
       _showSnack('Unable to fetch current location: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _locating = false;
+        });
+      }
     }
   }
 

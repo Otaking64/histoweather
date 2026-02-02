@@ -27,6 +27,9 @@ class _HistoryPageState extends State<HistoryPage> {
   bool _locating = false;
   String? _error;
   int _callCount = 0;
+  double _chartScale = 1.0;
+  final List<double> _yearIntervals = [5, 10, 25, 50];
+  int _yearIntervalIndex = 0;
 
   @override
   void dispose() {
@@ -243,7 +246,11 @@ class _HistoryPageState extends State<HistoryPage> {
     final maxYear = years.reduce((a, b) => a > b ? a : b).toDouble();
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final chartWidth = (spots.length * 32).clamp(screenWidth - 48, 1200.0).toDouble();
+    final baseWidth = spots.length * 32.0;
+    final spacingFactor = 5 / _yearIntervals[_yearIntervalIndex];
+    final chartWidth = (baseWidth * spacingFactor * _chartScale)
+        .clamp(screenWidth - 48, 1600.0)
+        .toDouble();
 
     return Card(
       margin: const EdgeInsets.only(top: 8),
@@ -254,6 +261,24 @@ class _HistoryPageState extends State<HistoryPage> {
           children: [
             _sectionTitle('Temperatures on ${DateFormat('MMMM d').format(targetDate)}', Icons.timeline),
             const SizedBox(height: 8),
+            Row(
+              children: [
+                const Text('Year spacing'),
+                IconButton(
+                  icon: const Icon(Icons.remove),
+                  tooltip: 'Increase spacing',
+                  onPressed: _yearIntervalIndex < _yearIntervals.length - 1
+                      ? () => _updateYearInterval(1)
+                      : null,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: 'Decrease spacing',
+                  onPressed: _yearIntervalIndex > 0 ? () => _updateYearInterval(-1) : null,
+                ),
+                Text('${_yearIntervals[_yearIntervalIndex].toInt()}y'),
+              ],
+            ),
             SizedBox(
               height: 260,
               child: SingleChildScrollView(
@@ -274,7 +299,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       gridData: FlGridData(
                         show: true,
                         drawVerticalLine: false,
-                        horizontalInterval: 5,
+                        horizontalInterval: _yearIntervals[_yearIntervalIndex],
                         getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade300, strokeWidth: 1),
                       ),
                       titlesData: FlTitlesData(
@@ -286,9 +311,10 @@ class _HistoryPageState extends State<HistoryPage> {
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
-                            interval: (maxYear - minYear) <= 6 ? 1 : null,
-                            getTitlesWidget: (value, meta) => Transform.translate(
-                              offset: const Offset(0, 6),
+                            interval: _yearIntervals[_yearIntervalIndex],
+                            reservedSize: 52,
+                            getTitlesWidget: (value, meta) => Padding(
+                              padding: const EdgeInsets.only(top: 12),
                               child: Transform.rotate(
                                 angle: -0.6,
                                 child: Text(
@@ -553,6 +579,18 @@ class _HistoryPageState extends State<HistoryPage> {
         ],
       ),
     );
+  }
+
+  void _updateChartScale(double delta) {
+    setState(() {
+      _chartScale = (_chartScale + delta).clamp(0.5, 2.0);
+    });
+  }
+
+  void _updateYearInterval(int deltaIndex) {
+    setState(() {
+      _yearIntervalIndex = (_yearIntervalIndex + deltaIndex).clamp(0, _yearIntervals.length - 1);
+    });
   }
 }
 
